@@ -1,58 +1,58 @@
-/* src/components/ImageUpload.css */
-.upload-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-}
+// src/components/ImageUpload.js
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './ImageUpload.css'; // Create and import your CSS for styling
 
-/* Hide the default file input visually but remain accessible for screen readers */
-.file-input {
-  opacity: 0;
-  width: 0.1px;
-  height: 0.1px;
-  position: absolute;
-  z-index: -1;
-}
+const ImageUpload = () => {
+  const [file, setFile] = useState(null);
+  const navigate = useNavigate(); // useNavigate instead of useHistory
 
-/* Style the label to look like a button */
-.file-input-label {
-  display: inline-block;
-  padding: 10px 20px;
-  background-color: #4CAF50; /* Green background */
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 10px; /* Space between the label and button */
-  font-size: 16px; /* Optionally set the font size */
-}
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
 
-.file-input-label:hover {
-  background-color: #45a049; /* Darker shade on hover */
-}
+  const handleSubmit = async () => {
+    if (!file) {
+      alert('No file selected.');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('image', file);
 
-.submit-button {
-  padding: 10px 20px;
-  background-color: #4CAF50; /* Green background */
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
-  margin-top: 10px; /* Space between the input and button */
-}
+    try {
+      // Inside your upload handling function
+      const response = await fetch('http://localhost:5000/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // Use the React Router's navigate function to redirect to the FileSummary component with the necessary state
+        navigate('/summary', { state: { fileUrl: data.fileUrl, fileType: data.fileType } });
+      } else {
+        // Handle the error
+        console.error('Upload failed:', data.error);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred. Please try again later.');
+    }
+  };
 
-.submit-button:hover {
-  background-color: #45a049; /* Darker shade on hover */
-}
+  return (
+    <div className="upload-container">
+      <div className="welcome-text">
+        Welcome to AI for Justice Website. We are here to help!
+        Please upload the scanned questionnaire.
+      </div>
+      {/* The file input - hidden but functional */}
+      <input type="file" id="file-input" className="file-input" onChange={handleFileChange} />
+      {/* Style label as a button for the file input */}
+      <label htmlFor="file-input" className="file-input-label">Choose File</label>
+      <button onClick={handleSubmit} className="submit-button">Submit File</button>
+    </div>
+  );
+};
 
-.welcome-text {
-  font-family: 'Arial', sans-serif;
-  font-size: 1rem;
-  color: #333;
-  text-align: center;
-  max-width: 600px;
-  margin-bottom: 20px;
-  padding: 10px;
-}
+
+export default ImageUpload;
