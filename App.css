@@ -1,0 +1,22 @@
+/* src/App.css */
+.App-header {
+  background-color: #282c34;
+  min-height: 50px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  position: relative;
+}
+
+.App-logo {
+  width: 100px;
+  /* or any size that fits your design */
+  height: auto;
+  /* maintain aspect ratio */
+}
+
+
+/* src/styles/ImageUpload.css */
+/* Add your custom styles for the ImageUpload component here */
