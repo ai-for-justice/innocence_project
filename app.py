@@ -8,7 +8,7 @@ app = Flask(__name__, static_folder='uploads')  # Set 'uploads' as a folder for 
 CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'png', 'pdf', 'jpg', 'jpeg', 'gif'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['STATIC_URL_PATH'] = ''  # Serve static files at the root
@@ -21,13 +21,21 @@ def allowed_file(filename):
 def process_image(image_path):
     # Process the image and return the summary
     # This is where you would integrate your AI model or any other logic
-    summary = "This is a placeholder for the image summary."
+    summary = """This is a placeholder for the image summary
+                Here is more text.
+                Evaluation: 
+                Next step: 
+    """
     return summary
 
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    # Set the MIME type for PDF if the file is a PDF
+    if filename.lower().endswith('.pdf'):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename, mimetype='application/pdf')
+    else:
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 @app.route('/upload', methods=['POST'])
@@ -37,23 +45,23 @@ def upload_file():
     file = request.files['image']
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
+    
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
-
-        # Create a full URL to the saved image
-        image_url = request.host_url.rstrip('/') + '/' + os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        print("Image URL:", image_url)
-        # summary_text = process_image(filepath)
-        x = dict()
-
+        
+        file_url = f'http://localhost:5000/uploads/{filename}'  # Ensure this URL is correct
+        summary, evaluation = process_image(filepath)  # Call the summary processing function
+        
         return jsonify({
             'message': 'File uploaded successfully',
-            'imageUrl': image_url,
-            'summaryText': x['summary_text'],
-            'xxx': x['xxxx']
+            'fileUrl': file_url,
+            'summaryText': summary,
+            'evaluationText': evaluation,
+            'fileType': 'pdf' if filename.lower().endswith('.pdf') else 'image'
         }), 200
+
     else:
         return jsonify({'error': 'File type not allowed'}), 400
 
