@@ -1,0 +1,39 @@
+/* src/components/UI/Button.css */
+.button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    color: white;
+    background-color: #007bff;
+    /* Bootstrap primary color for example */
+}
+
+.button:hover {
+    background-color: #0056b3;
+    /* A darker shade for hover state */
+}
+
+/* Example additional classes for different button styles */
+.button.outline {
+    background-color: transparent;
+    color: #007bff;
+    border: 2px solid #007bff;
+}
+
+.button.outline:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.button.small {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.button.large {
+    padding: 15px 30px;
+    font-size: 18px;
+}
