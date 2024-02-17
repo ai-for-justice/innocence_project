@@ -45,12 +45,14 @@ def upload_file():
         # Create a full URL to the saved image
         image_url = request.host_url.rstrip('/') + '/' + os.path.join(app.config['UPLOAD_FOLDER'], filename)
         print("Image URL:", image_url)
-        summary_text = process_image(filepath)
+        # summary_text = process_image(filepath)
+        x = dict()
 
         return jsonify({
             'message': 'File uploaded successfully',
             'imageUrl': image_url,
-            'summaryText': summary_text
+            'summaryText': x['summary_text'],
+            'xxx': x['xxxx']
         }), 200
     else:
         return jsonify({'error': 'File type not allowed'}), 400
