@@ -41,6 +41,9 @@ def upload_file():
         print("Image URL:", image_url)
         result = eval_pipeline(filepath)
         
+        # summary_text = process_image(filepath)
+        x = dict()
+
         return jsonify({
             'backgroundQ': "What background information have we extracted from the applicant's intake letter?"
             'message': 'File uploaded successfully',
