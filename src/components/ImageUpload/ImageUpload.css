@@ -1,55 +1,58 @@
-/* Container for the image upload component */
-.image-upload-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-  }
-  
-  /* Stylish custom file upload button */
-  .custom-file-upload {
-    margin: 20px 0;
-    padding: 10px 15px;
-    background-color: #f90; /* Orange background */
-    color: white; /* White text */
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .custom-file-upload:hover {
-    background-color: #e89f00; /* Darker shade of orange on hover */
-  }
-  
-  /* Input file - hidden */
-  input[type="file"] {
-    display: none;
-  }
-  
-  /* Styling for the image preview */
-  .image-preview {
-    max-width: 300px;
-    max-height: 300px;
-    margin-top: 20px;
-  }
-  
-  /* Textbox styling */
-  .textbox {
-    width: 100%;
-    max-width: 500px; /* Max width to ensure it doesn't get too large on bigger screens */
-    height: 150px;
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    resize: vertical; /* Allows the textbox to be resized vertically */
-  }
-  
-  .textbox {
-    width: 100%; /* Adjust based on layout */
-    height: 150px; /* Provide enough space for text entry */
-    border: 1px solid #ccc; /* Add a border for visibility */
-    margin: 10px 0; /* Space it out from other elements */
-  }
-  
+/* src/components/ImageUpload.css */
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Hide the default file input visually but remain accessible for screen readers */
+.file-input {
+  opacity: 0;
+  width: 0.1px;
+  height: 0.1px;
+  position: absolute;
+  z-index: -1;
+}
+
+/* Style the label to look like a button */
+.file-input-label {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #4CAF50; /* Green background */
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 10px; /* Space between the label and button */
+  font-size: 16px; /* Optionally set the font size */
+}
+
+.file-input-label:hover {
+  background-color: #45a049; /* Darker shade on hover */
+}
+
+.submit-button {
+  padding: 10px 20px;
+  background-color: #4CAF50; /* Green background */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+  margin-top: 10px; /* Space between the input and button */
+}
+
+.submit-button:hover {
+  background-color: #45a049; /* Darker shade on hover */
+}
+
+.welcome-text {
+  font-family: 'Arial', sans-serif;
+  font-size: 1rem;
+  color: #333;
+  text-align: center;
+  max-width: 600px;
+  margin-bottom: 20px;
+  padding: 10px;
+}
