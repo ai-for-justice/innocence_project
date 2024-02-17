@@ -1,0 +1,33 @@
+/* src/components/FileSummary.css */
+.file-summary-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 20px; /* space between the image and the summary */
+  }
+
+.image-section img {
+  max-width: 50%; /* Adjust as needed */
+  height: auto;
+  border: 1px solid #ccc; /* Optional */
+}
+
+.image-container {
+  flex: 1;
+  max-width: 50%; /* or any other ratio you prefer */
+}
+
+.image-container img {
+  max-width: 100%;
+  height: auto;
+}
+
+.summary-container {
+  flex: 1;
+  max-width: 50%; /* or any other ratio you prefer */
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+  
