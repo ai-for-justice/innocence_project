@@ -1,63 +1,88 @@
 # app.py
+import os
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-import os
 from flask_cors import CORS
+from llm_pipeline import (
+    analyze_applicant_intake_letters,
+    MISSINFO_CHECK_CHAIN,
+    CRITERIA_CHECK_CHAIN,
+)
 
-app = Flask(__name__, static_folder='uploads')  # Set 'uploads' as a folder for static files
-CORS(app)
-
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['STATIC_URL_PATH'] = ''  # Serve static files at the root
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# Configuration
+UPLOAD_FOLDER = "uploads"
+ALLOWED_EXTENSIONS = {"png", "pdf", "jpg", "jpeg"}
 
 
-def process_image(image_path):
-    # Process the image and return the summary
-    # This is where you would integrate your AI model or any other logic
-    summary = "This is a placeholder for the image summary."
-    return summary
+# Application Factory
+def create_app():
+    app = Flask(__name__, static_folder=UPLOAD_FOLDER)
+    CORS(app)
+    app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+    # Utility function
+    def allowed_file(filename):
+        return (
+            "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+        )
+
+    # Routes
+    @app.route("/uploads/<filename>")
+    def uploaded_file(filename):
+        mimetype = "application/pdf" if filename.lower().endswith(".pdf") else None
+        return send_from_directory(
+            app.config["UPLOAD_FOLDER"], filename, mimetype=mimetype
+        )
+
+    @app.route("/upload", methods=["POST"])
+    def upload_file():
+        # Error handling for missing file part
+        if "image" not in request.files:
+            return jsonify({"error": "No file part"}), 400
+
+        file = request.files["image"]
+        # Error handling for empty filename
+        if file.filename == "":
+            return jsonify({"error": "No selected file"}), 400
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            file.save(filepath)
+
+            # Process the uploaded file
+            background = analyze_applicant_intake_letters(filepath)
+            is_missinginfo = MISSINFO_CHECK_CHAIN.invoke({"background": background})
+
+            if is_missinginfo["response"].lower() == "yes":
+                response = {
+                    "backgroundQ": "What background information have we extracted from the applicant's intake letter?",
+                    "background": background,
+                    "is_missinginfo_Q": "Do we need more information from the applicant to proceed with the evaluation?",
+                    "next_steps": is_missinginfo["next_steps"],
+                }
+            else:
+                evaluation = CRITERIA_CHECK_CHAIN.invoke({"background": background})
+                response = {
+                    "backgroundQ": "What background information have we extracted from the applicant's intake letter?",
+                    "background": background,
+                    "is_missinginfo_Q": "Do we need more information from the applicant to proceed with the evaluation?",
+                    "is_missinginfo_A": "No, we have enough information to proceed with the evaluation.",
+                    "evaluation": evaluation["evaluation"],
+                    "conclusion": evaluation["conclusion"],
+                    "next_steps": evaluation["next_steps"],
+                }
+
+            return jsonify(response), 200
+        else:
+            return jsonify({"error": "File type not allowed"}), 400
+
+    return app
 
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-
-        # Create a full URL to the saved image
-        image_url = request.host_url.rstrip('/') + '/' + os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        print("Image URL:", image_url)
-        # summary_text = process_image(filepath)
-        x = dict()
-
-        return jsonify({
-            'message': 'File uploaded successfully',
-            'imageUrl': image_url,
-            'summaryText': x['summary_text'],
-            'xxx': x['xxxx']
-        }), 200
-    else:
-        return jsonify({'error': 'File type not allowed'}), 400
-
-if __name__ == '__main__':
+# Main entry point
+if __name__ == "__main__":
+    app = create_app()
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     app.run(debug=True)

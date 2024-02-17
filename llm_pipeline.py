@@ -1,4 +1,3 @@
-import os
 import fitz  # Import the PyMuPDF library
 import base64
 import requests
@@ -7,10 +6,11 @@ from io import BytesIO
 from typing import List, Union
 
 # import langchain
-from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
+
+from utils import HEADERS, INFO_EXTRACTION_RPOMPT, LLM
 
 ###############PDF to Image###############
 
@@ -59,23 +59,6 @@ def pdf_to_images(pdf_path: str) -> List[str]:
 
 ###############Analyze intake letter###############
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-}
-
-INFO_EXTRACTION_RPOMPT = """
-    Analyze the provided images to summarize key information about the applicant's case based on their responses. Focus on accurately capturing:
-
-    - Personal identification details.
-    - Specifics of the crime(s) they were convicted of, including dates and locations.
-    - Their account of the events surrounding the crime, emphasizing their description and any claims of innocence.
-    - Any alibi or evidence they provide that supports their case.
-    - Connections or relationships with the victim(s) or others involved in the case.
-    - Clarify the applicant's stance on their conviction and any aspects they are disputing.
-
-    Ensure to maintain the original meaning and intention of the applicant's responses, avoiding any assumptions or modifications beyond what is explicitly stated in their answers.
-"""
 
 def analyze_applicant_intake_letters(file_path_or_images: Union[str, List[str]]) -> str:
     """
@@ -125,7 +108,7 @@ def analyze_applicant_intake_letters(file_path_or_images: Union[str, List[str]])
 
 class MissInfoCheckOutput(BaseModel):
     response: str = Field(
-        ...,  
+        ...,
         description="Yes or No reply to the question: 'Is there any missing information?'",
     )
     next_steps: str = Field(
@@ -172,55 +155,28 @@ class CriteriaCheckOutput(BaseModel):
         }
 
 
-llm = ChatOpenAI(openai_api_key="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")
 MISSINFO_CHECK_PARSER = JsonOutputParser(pydantic_object=MissInfoCheckOutput)
+
+MISSINFO_CHECK_PROMPT = PromptTemplate(
+    input_variables=["background"],
+    template="""
+        Review the summarized information extracted from the applicant's intake letter. 
+        
+        Information: '{background}'. 
+        
+        Determine if all necessary details are provided, including personal identification, specifics of the conviction, the applicant's account and evidence, connections with involved parties, and their stance on the conviction. If any key information is missing, respond with 'YES' and draft a letter requesting the specific missing information from the applicant. The letter should be polite, concise, and clearly specify what information is needed and why it is important for their case. If the narrative is complete, simply respond with 'NO'.
+        
+        {format_instructions}.""",
+    partial_variables={
+        "format_instructions": MISSINFO_CHECK_PARSER.get_format_instructions()
+    },
+)
+
+MISSINFO_CHECK_CHAIN = MISSINFO_CHECK_PROMPT | LLM | MISSINFO_CHECK_PARSER
+
 CRITERIA_CHECK_PARSER = JsonOutputParser(pydantic_object=CriteriaCheckOutput)
 
-
-def eval_pipeline(file_path_or_images: Union[str, List[str]]) -> None:
-    """
-    Evaluates an applicant's intake letter and provides a response based on the extracted information.
-    
-    Args:
-        file_path_or_images (Union[str, List[str]]): The file path of the PDF or a list of image file paths containing the applicant's intake letters.
-        
-    Returns:
-        None
-    """
-    # Assuming an affirmative response, proceed with analysis
-    background = analyze_applicant_intake_letters(file_path_or_images)
-    
-    # Background from intake letter
-    backgroundQ = "What background information have we extracted from the applicant's intake letter?"
-    backgroundA = background
-
-    # Checking for missing information
-    missingQ = "\nIs there any missing information in the application that we need to address?"
-
-    MISSINFO_CHECK_PROMPT = PromptTemplate(
-        input_variables=["background"],
-        template="""
-            Review the summarized information extracted from the applicant's intake letter. 
-            
-            Information: '{background}'. 
-            
-            Determine if all necessary details are provided, including personal identification, specifics of the conviction, the applicant's account and evidence, connections with involved parties, and their stance on the conviction. If any key information is missing, respond with 'YES' and draft a letter requesting the specific missing information from the applicant. The letter should be polite, concise, and clearly specify what information is needed and why it is important for their case. If the narrative is complete, simply respond with 'NO'.
-            
-            {format_instructions}.""",
-        partial_variables={
-            "format_instructions": MISSINFO_CHECK_PARSER.get_format_instructions()
-        }
-    )
-
-    MISSINFO_CHECK_CHAIN = MISSINFO_CHECK_PROMPT | llm | MISSINFO_CHECK_PARSER
-
-    missinfo_check = MISSINFO_CHECK_CHAIN.invoke({"background": background})
-
-    is_missing = missinfo_check["response"]
-
-    CRITERIA_CHECK_PARSER = JsonOutputParser(pydantic_object=CriteriaCheckOutput)
-
-    CRITERIA_CHECK_PROMPT = PromptTemplate(
+CRITERIA_CHECK_PROMPT = PromptTemplate(
     input_variables=["background"],
     template="""
         Assess the provided narrative against the Innocence Project's criteria for cases they do not handle, which include consent/transaction cases, self-defense/justification, sustained abuse, illegal substance charges, RICO/Hobbs Act charges, DWI/DUI, fraud/identity theft/forgery, stalking/harassment, and sentencing reduction/overcharge issues.
@@ -232,22 +188,36 @@ def eval_pipeline(file_path_or_images: Union[str, List[str]]) -> None:
         3. If the narrative matches one of the excluded criteria, draft a polite and concise rejection letter explaining the specific reason(s) why the case does not meet the project's guidelines. If the narrative does not match any excluded criteria, indicate that the case is given to a different team for further handling.
         
         {format_instructions}.""",
-    partial_variables={"format_instructions": CRITERIA_CHECK_PARSER.get_format_instructions()}
+    partial_variables={
+        "format_instructions": CRITERIA_CHECK_PARSER.get_format_instructions()
+    },
 )
 
-    CRITERIA_CHECK_CHAIN = CRITERIA_CHECK_PROMPT | llm | CRITERIA_CHECK_PARSER
+CRITERIA_CHECK_CHAIN = CRITERIA_CHECK_PROMPT | LLM | CRITERIA_CHECK_PARSER
 
-    if missinfo_check["response"] == "yes":
-        missingQ = "What does the drafted letter requesting the missing information say?"
-        result = missinfo_check
+
+def evaluate_applicant_criteria(background: str) -> str:
+    """
+    Evaluates the applicant's case against the Innocence Project's criteria for cases they do not handle.
+
+    Args:
+        background (str): The summarized information extracted from the applicant's intake letter.
+
+    Returns:
+        The response from the API call.
+    """
+    is_missinginfo = MISSINFO_CHECK_CHAIN.invoke({"background": background})
+    if is_missinginfo["response"].lower() == "yes":
+        return is_missinginfo
     else:
-        missingQ = "With no missing information, how does the applicant's case stand against our criteria?"
-        critiria_check_response = CRITERIA_CHECK_CHAIN.invoke(
-            {"background": background}
-        )
-        result = critiria_check_response
-        # evaluation = critiria_check_response["evaluation"]
-        # conclusion = critiria_check_response["conclusion"]
-        # next_steps = critiria_check_response["next_steps"]
+        return CRITERIA_CHECK_CHAIN.invoke({"background": background})
 
-    return result 
+
+if __name__ == "__main__":
+    image_path = [
+        "/Users/jieyinuo/Desktop/hackathon/datasets/Letter-from-Archie-Williams_Page_1.jpeg",
+        "/Users/jieyinuo/Desktop/hackathon/datasets/Letter-from-Archie-Williams_Page_2.jpeg",
+    ]
+    background = analyze_applicant_intake_letters(image_path)
+    result = evaluate_applicant_criteria(background)
+    print(result)
