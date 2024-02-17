@@ -33,11 +33,11 @@ In its mission to exonerate the wrongly convicted through DNA testing and reform
 
 To address these challenges, our project proposes the following solution tailored for the Innocence Project:
 
+- **Privacy Protection:** Sensitive information is redacted before processing to protect privacy, using anonymization techniques before submission to the OpenAI API.
 - **Enhanced Accuracy/Efficiency:** By automating the intake letter and application processing using GPT, we aim to significantly improve the accuracy and speed of the review process.
 - **Criteria-Based Filtering:** The system automatically assesses each case against the Innocence Project's criteria, efficiently sorting cases into categories for further action.
 - **Advanced Character and Language Recognition:** Utilizing GPT's advanced capabilities to recognize and interpret challenging characters and languages, ensuring no case is overlooked due to readability issues.
 - **Support for Human Evaluators:** Despite automation, the system is designed to assist human evaluators by providing preliminary summaries and assessments, with final decisions made by legal professionals.
-- **Privacy Protection:** Sensitive information is redacted before processing to protect privacy, using anonymization techniques before submission to the OpenAI API.
 
 ---
 
@@ -47,6 +47,8 @@ Here, a visual representation of the pipeline would be included, illustrating th
 ![Pipeline Overview](assets/pipeline.png)
 
 We also have a [demo notebook](notebooks/innocence_project.ipynb) that showcases the pipeline in action, demonstrating the automated processing of a sample case submission.
+
+---
 
 ## Examples
 
@@ -69,13 +71,6 @@ git clone `this repo`
 cd your_path_to_the_project
 python llm_pipeline.py --file_path `your path to the file` --openai_key `your openai key`
 ```
-
-## Special Features
-
-- **Anonymization:** Prioritizing privacy by anonymizing identification before processing.
-- **Local LLM Usage:** Utilizing local language models to enhance privacy protection.
-- **Fine-tuning Visual Question Answering:** To extract information from intake letters without relying on external APIs.
-- **Prompt Engineering:** Developing more refined prompts to improve the efficiency and accuracy of automated processing.
 
 ---
 
