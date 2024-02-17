@@ -1,21 +1,24 @@
+import os
+import argparse
 import fitz  # Import the PyMuPDF library
 import base64
 import requests
 from PIL import Image
 from io import BytesIO
+from termcolor import colored
 from typing import List, Union
 
 # import langchain
+from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
 from utils import (
-    HEADERS,
+    LLM,
     INFO_EXTRACTION_RPOMPT,
     MISSINFO_CHECK_PROMPT_TEMPLATE,
     CRITERIA_CHECK_PROMPT_TEMPLATE,
-    LLM,
 )
 
 ###############PDF to Image###############
@@ -66,24 +69,20 @@ def pdf_to_images(pdf_path: str) -> List[str]:
 ###############Analyze intake letter###############
 
 
-def analyze_applicant_intake_letters(file_path_or_images: Union[str, List[str]]) -> str:
+def analyze_applicant_intake_letters(file_path: str) -> str:
     """
     Analyzes provided intake letters or images to summarize key information about an applicant's case.
 
     Args:
-        file_path_or_images (Union[str, List[str]]): The file path of the PDF or a list of image file paths containing the applicant's intake letters.
+        file_path_or_images (str): The file path of the PDF or a list of image file paths containing the applicant's intake letters.
 
     Returns:
         The response from the API call.
     """
-    if isinstance(file_path_or_images, str) and file_path_or_images.endswith(".pdf"):
-        encoded_images = pdf_to_images(file_path_or_images)
-    elif isinstance(file_path_or_images, list):
-        encoded_images = [
-            encode_image(image_path)
-            for image_path in file_path_or_images
-            if image_path.endswith((".png", ".jpeg", ".jpg"))
-        ]
+    if file_path.endswith(".pdf"):
+        encoded_images = pdf_to_images(file_path)
+    elif file_path.endswith((".png", ".jpeg", ".jpg")):
+        encoded_images = [encode_image(file_path)]
     else:
         raise ValueError(
             "Unsupported file format or type. Please provide a PDF path or a list of PNG/JPEG image paths."
@@ -171,8 +170,6 @@ MISSINFO_CHECK_PROMPT = PromptTemplate(
     },
 )
 
-MISSINFO_CHECK_CHAIN = MISSINFO_CHECK_PROMPT | LLM | MISSINFO_CHECK_PARSER
-
 CRITERIA_CHECK_PARSER = JsonOutputParser(pydantic_object=CriteriaCheckOutput)
 
 CRITERIA_CHECK_PROMPT = PromptTemplate(
@@ -183,6 +180,7 @@ CRITERIA_CHECK_PROMPT = PromptTemplate(
     },
 )
 
+MISSINFO_CHECK_CHAIN = MISSINFO_CHECK_PROMPT | LLM | MISSINFO_CHECK_PARSER
 CRITERIA_CHECK_CHAIN = CRITERIA_CHECK_PROMPT | LLM | CRITERIA_CHECK_PARSER
 
 
@@ -204,10 +202,78 @@ def evaluate_applicant_criteria(background: str) -> str:
 
 
 if __name__ == "__main__":
-    image_path = [
-        "/Users/jieyinuo/Desktop/hackathon/datasets/Letter-from-Archie-Williams_Page_1.jpeg",
-        "/Users/jieyinuo/Desktop/hackathon/datasets/Letter-from-Archie-Williams_Page_2.jpeg",
-    ]
-    background = analyze_applicant_intake_letters(image_path)
-    result = evaluate_applicant_criteria(background)
-    print(result)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--file_path",
+        type=str,
+        required=True,
+        help="The file path of the PDF or the image file path containing the applicant's intake letters.",
+    )
+    parser.add_argument(
+        "--openai_api_key",
+        type=str,
+        required=True,
+        help="The OpenAI API key to authenticate the API requests.",
+    )
+
+    args = parser.parse_args()
+
+    # setup the openai api key
+    os.environ["OPENAI_API_KEY"] = args.openai_api_key
+    HEADERS = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+    }
+    LLM = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
+    MISSINFO_CHECK_CHAIN = MISSINFO_CHECK_PROMPT | LLM | MISSINFO_CHECK_PARSER
+    CRITERIA_CHECK_CHAIN = CRITERIA_CHECK_PROMPT | LLM | CRITERIA_CHECK_PARSER
+
+    print(
+        colored(
+            "Analyzing applicant's intake letter from the input files. Please wait...",
+            "blue",
+        )
+    )
+
+    # Assuming an affirmative response, proceed with analysis
+    background = analyze_applicant_intake_letters(file_path=args.file_path)
+
+    # Before printing out the background information
+    print(
+        colored(
+            "What background information have we extracted from the applicant's intake letter?",
+            "blue",
+        )
+    )
+    print(colored(background, "yellow"))
+
+    # Checking for missing information
+    print(
+        colored(
+            "\nIs there any missing information in the application that we need to address?",
+            "blue",
+        )
+    )
+    missinfo_check = MISSINFO_CHECK_CHAIN.invoke({"background": background})
+
+    if missinfo_check["response"].lower() == "yes":
+        print(
+            colored(
+                "What does the drafted letter requesting the missing information say?",
+                "blue",
+            )
+        )
+        print(colored(missinfo_check["next_steps"], "yellow"))
+    else:
+        print(
+            colored(
+                "With no missing information, how does the applicant's case stand against our criteria?",
+                "blue",
+            )
+        )
+        criteria_check_response = CRITERIA_CHECK_CHAIN.invoke(
+            {"background": background}
+        )
+        print(colored("Evaluation:", "green"), criteria_check_response["evaluation"])
+        print(colored("Conclusion:", "green"), criteria_check_response["conclusion"])
+        print(colored("Next Steps:", "green"), criteria_check_response["next_steps"])

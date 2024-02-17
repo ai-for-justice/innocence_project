@@ -62,6 +62,14 @@ Here, a sample case submission would be included.
 
 ---
 
+## Usage
+The system can be used by running the `llm_pipeline.py` script with the following command:
+```terminal
+git clone `this repo`
+cd your_path_to_the_project
+python llm_pipeline.py --file_path `your path to the file` --openai_key `your openai key`
+```
+
 ## Special Features
 
 - **Anonymization:** Prioritizing privacy by anonymizing identification before processing.

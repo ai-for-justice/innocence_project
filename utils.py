@@ -1,12 +1,8 @@
 import os
 from langchain_community.chat_models import ChatOpenAI
 
-os.environ["OPENAI_API_KEY"] = ""
+os.environ["OPENAI_API_KEY"] = ""  # Replace with your OpenAI API key
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-}
 
 INFO_EXTRACTION_RPOMPT = """
     Analyze the provided images to summarize key information about the applicant's case based on their responses. Focus on accurately capturing:
