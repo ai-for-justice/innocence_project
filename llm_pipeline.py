@@ -196,46 +196,21 @@ CRITERIA_CHECK_PROMPT = PromptTemplate(
 CRITERIA_CHECK_CHAIN = CRITERIA_CHECK_PROMPT | LLM | CRITERIA_CHECK_PARSER
 
 
-def eval_pipeline(file_path_or_images: Union[str, List[str]]) -> None:
+def evaluate_applicant_criteria(background: str) -> str:
     """
-    Evaluates an applicant's intake letter and provides a response based on the extracted information.
+    Evaluates the applicant's case against the Innocence Project's criteria for cases they do not handle.
 
     Args:
-        file_path_or_images (Union[str, List[str]]): The file path of the PDF or a list of image file paths containing the applicant's intake letters.
+        background (str): The summarized information extracted from the applicant's intake letter.
 
     Returns:
-        None
+        The response from the API call.
     """
-    # Assuming an affirmative response, proceed with analysis
-    background = analyze_applicant_intake_letters(file_path_or_images)
-
-    # Background from intake letter
-    backgroundA = background
-
-    # Checking for missing information
-    missingQ = (
-        "\nIs there any missing information in the application that we need to address?"
-    )
-
-    missinfo_check = MISSINFO_CHECK_CHAIN.invoke({"background": background})
-
-    is_missing = missinfo_check["response"]
-
-    CRITERIA_CHECK_PARSER = JsonOutputParser(pydantic_object=CriteriaCheckOutput)
-
-    if missinfo_check["response"] == "yes":
-        missingQ = (
-            "What does the drafted letter requesting the missing information say?"
-        )
-        result = missinfo_check
+    is_missinginfo = MISSINFO_CHECK_CHAIN.invoke({"background": background})
+    if is_missinginfo["response"].lower() == "yes":
+        return is_missinginfo
     else:
-        missingQ = "With no missing information, how does the applicant's case stand against our criteria?"
-        critiria_check_response = CRITERIA_CHECK_CHAIN.invoke(
-            {"background": background}
-        )
-        result = critiria_check_response
-
-    return result
+        return CRITERIA_CHECK_CHAIN.invoke({"background": background})
 
 
 if __name__ == "__main__":
@@ -243,6 +218,6 @@ if __name__ == "__main__":
         "/Users/jieyinuo/Desktop/hackathon/datasets/Letter-from-Archie-Williams_Page_1.jpeg",
         "/Users/jieyinuo/Desktop/hackathon/datasets/Letter-from-Archie-Williams_Page_2.jpeg",
     ]
-    result = eval_pipeline(image_path)
+    background = analyze_applicant_intake_letters(image_path)
+    result = evaluate_applicant_criteria(background)
     print(result)
-    # print(analyze_applicant_intake_letters(image_path))
