@@ -20,16 +20,18 @@ const ImageUpload = () => {
     formData.append('image', file);
 
     try {
+      // Inside your upload handling function
       const response = await fetch('http://localhost:5000/upload', {
         method: 'POST',
         body: formData,
       });
       const data = await response.json();
       if (response.ok) {
-        navigate('/summary', { state: { imageSrc: data.imageUrl, summaryText: data.summaryText } });
-        alert(`File uploaded successfully: ${data.filename}`);
+        // Use the React Router's navigate function to redirect to the FileSummary component with the necessary state
+        navigate('/summary', { state: { fileUrl: data.fileUrl, fileType: data.fileType } });
       } else {
-        alert('Upload failed.');
+        // Handle the error
+        console.error('Upload failed:', data.error);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -40,13 +42,14 @@ const ImageUpload = () => {
   return (
     <div className="upload-container">
       <div className="welcome-text">
-        Welcome to AI for Justice Website. Please upload the scanned questionnaire in png format.
+        Welcome to AI for Justice Website. We are here to help!
+        Please upload the scanned questionnaire.
       </div>
       {/* The file input - hidden but functional */}
       <input type="file" id="file-input" className="file-input" onChange={handleFileChange} />
       {/* Style label as a button for the file input */}
       <label htmlFor="file-input" className="file-input-label">Choose File</label>
-      <button onClick={handleSubmit} className="submit-button">Submit Image</button>
+      <button onClick={handleSubmit} className="submit-button">Submit File</button>
     </div>
   );
 };
