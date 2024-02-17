@@ -5,26 +5,28 @@ import './FileSummary.css';
 
 const FileSummary = () => {
   const location = useLocation();
-  const { fileUrl, fileType } = location.state || {};
-  const [responseData, setResponseData] = useState({});
+  // const responseData = location.state?.response;
+  // const location = useLocation();
+  const { fileUrl, fileType, response } = location.state || {};
+  // const [responseData, setResponseData] = useState({});
 
-  useEffect(() => {
-    // Replace 'http://localhost:5000/upload' with the actual data-fetching endpoint
-    fetch('http://localhost:5000/upload')
-      .then(response => {
-        if (!response.ok) throw new Error('Network response was not ok');
-        return response.json();
-      })
-      .then(data => setResponseData(data))
-      .catch(error => console.error("Fetch error: ", error));
-  }, []);
+  // useEffect(() => {
+  //   // Replace 'http://localhost:5000/upload' with the actual data-fetching endpoint
+  //   fetch('http://localhost:5000/upload')
+  //     .then(response => {
+  //       if (!response.ok) throw new Error('Network response was not ok');
+  //       return response.json();
+  //     })
+  //     .then(data => setResponseData(data))
+  //     .catch(error => console.error("Fetch error: ", error));
+  // }, []);
 
   const isPdf = fileType === 'pdf';
   const fileSrc = fileUrl;
 
   // Use responseData to dynamically populate these values
-  const leftBoxContent = responseData ? `${responseData.backgroundQ}\n\n${responseData.is_missinginfo_Q}\n\nEvaluation Results: ${responseData.evaluation}` : "";
-  const rightBoxContent = responseData ? `${responseData.background}\n\n${responseData.is_missinginfo_A}\n\nConclusion: ${responseData.conclusion}\n\nNext Steps: ${responseData.next_steps}` : "";
+  const leftBoxContent = response ? `${response.backgroundQ}\n\n${response.is_missinginfo_Q}\n\nEvaluation Results: ${response.evaluation}` : "";
+  const rightBoxContent = response ? `${response.background}\n\n${response.is_missinginfo_A}\n\nConclusion: ${response.conclusion}\n\nNext Steps: ${response.next_steps}` : "";
 
   return (
     <div className="file-summary-container">
