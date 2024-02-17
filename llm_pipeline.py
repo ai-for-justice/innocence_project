@@ -10,7 +10,13 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field, validator
 
-from utils import HEADERS, INFO_EXTRACTION_RPOMPT, LLM
+from utils import (
+    HEADERS,
+    INFO_EXTRACTION_RPOMPT,
+    MISSINFO_CHECK_PROMPT_TEMPLATE,
+    CRITERIA_CHECK_PROMPT_TEMPLATE,
+    LLM,
+)
 
 ###############PDF to Image###############
 
@@ -159,14 +165,7 @@ MISSINFO_CHECK_PARSER = JsonOutputParser(pydantic_object=MissInfoCheckOutput)
 
 MISSINFO_CHECK_PROMPT = PromptTemplate(
     input_variables=["background"],
-    template="""
-        Review the summarized information extracted from the applicant's intake letter. 
-        
-        Information: '{background}'. 
-        
-        Determine if all necessary details are provided, including personal identification, specifics of the conviction, the applicant's account and evidence, connections with involved parties, and their stance on the conviction. If any key information is missing, respond with 'YES' and draft a letter requesting the specific missing information from the applicant. The letter should be polite, concise, and clearly specify what information is needed and why it is important for their case. If the narrative is complete, simply respond with 'NO'.
-        
-        {format_instructions}.""",
+    template=MISSINFO_CHECK_PROMPT_TEMPLATE,
     partial_variables={
         "format_instructions": MISSINFO_CHECK_PARSER.get_format_instructions()
     },
@@ -178,16 +177,7 @@ CRITERIA_CHECK_PARSER = JsonOutputParser(pydantic_object=CriteriaCheckOutput)
 
 CRITERIA_CHECK_PROMPT = PromptTemplate(
     input_variables=["background"],
-    template="""
-        Assess the provided narrative against the Innocence Project's criteria for cases they do not handle, which include consent/transaction cases, self-defense/justification, sustained abuse, illegal substance charges, RICO/Hobbs Act charges, DWI/DUI, fraud/identity theft/forgery, stalking/harassment, and sentencing reduction/overcharge issues.
-        
-        Narritive: '{background}'.
-
-        1. Step by step, evaluate each criterion, explaining why the case does or does not fit within these excluded categories.
-        2. Conclude whether the case should be rejected based on these criteria or if it matches the criteria for further review.
-        3. If the narrative matches one of the excluded criteria, draft a polite and concise rejection letter explaining the specific reason(s) why the case does not meet the project's guidelines. If the narrative does not match any excluded criteria, indicate that the case is given to a different team for further handling.
-        
-        {format_instructions}.""",
+    template=CRITERIA_CHECK_PROMPT_TEMPLATE,
     partial_variables={
         "format_instructions": CRITERIA_CHECK_PARSER.get_format_instructions()
     },

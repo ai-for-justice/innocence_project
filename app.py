@@ -59,6 +59,7 @@ def create_app():
                     "backgroundQ": "What background information have we extracted from the applicant's intake letter?",
                     "background": background,
                     "is_missinginfo_Q": "Do we need more information from the applicant to proceed with the evaluation?",
+                    "is_missinginfo_A": is_missinginfo["response"],
                     "next_steps": is_missinginfo["next_steps"],
                 }
             else:
