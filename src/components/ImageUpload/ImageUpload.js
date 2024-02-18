@@ -28,7 +28,8 @@ const ImageUpload = () => {
       const data = await response.json();
       if (response.ok) {
         // Use the React Router's navigate function to redirect to the FileSummary component with the necessary state
-        navigate('/summary', { state: { fileUrl: data.fileUrl, fileType: data.fileType } });
+        // navigate('/summary', { state: { fileUrl: data.fileUrl, fileType: data.fileType } });
+        navigate('/summary', { state: { fileUrl: data.fileUrl, fileType: data.fileType, response: data }});
       } else {
         // Handle the error
         console.error('Upload failed:', data.error);
